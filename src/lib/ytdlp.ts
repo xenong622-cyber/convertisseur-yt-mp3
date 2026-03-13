@@ -37,6 +37,7 @@ export async function downloadAudio(
     "--newline",
     "--no-playlist",
     "--progress",
+    "--extractor-args", "youtube:player_client=web_creator,mediaconnect",
     "-o", `${outputDir}/%(title)s.%(ext)s`,
     url,
   ];
