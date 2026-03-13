@@ -27,6 +27,14 @@ export async function downloadAudio(
     return;
   }
 
+  // Find a JS runtime for yt-dlp (needed for YouTube extraction)
+  let jsRuntime: string | null = null;
+  try {
+    jsRuntime = await invoke<string | null>("find_js_runtime");
+  } catch {
+    // No JS runtime found, yt-dlp will try without (may fail for some videos)
+  }
+
   const args = [
     "-x",
     "--audio-format", format,
@@ -37,6 +45,7 @@ export async function downloadAudio(
     "--newline",
     "--no-playlist",
     "--progress",
+    ...(jsRuntime ? ["--js-runtimes", jsRuntime] : []),
     "-o", `${outputDir}/%(title)s.%(ext)s`,
     url,
   ];
@@ -54,6 +63,12 @@ export async function downloadAudio(
   const command = Command.sidecar("binaries/yt-dlp", args);
 
   command.stdout.on("data", (line: string) => {
+    // Check for errors FIRST (before any return)
+    if (line.includes("ERROR:")) {
+      stderrLines.push(line.trim());
+      return;
+    }
+
     const titleMatch = line.match(/\[download\]\s+Destination:\s+(.+)/);
     if (titleMatch) {
       lastFilePath = titleMatch[1].trim();
@@ -110,9 +125,6 @@ export async function downloadAudio(
       onStatus({ type: "converting" });
     }
 
-    if (line.includes("ERROR:")) {
-      stderrLines.push(line.trim());
-    }
   });
 
   command.stderr.on("data", (line: string) => {
