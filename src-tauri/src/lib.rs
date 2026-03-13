@@ -47,7 +47,7 @@ fn find_js_runtime() -> Option<String> {
                     let node = entry.path().join("node.exe");
                     if node.exists() {
                         let path_str = node.to_string_lossy().to_string();
-                        return Some(format!("nodejs:{}", path_str));
+                        return Some(format!("node:{}", path_str));
                     }
                 }
             }
@@ -56,7 +56,7 @@ fn find_js_runtime() -> Option<String> {
 
     for path in &candidates {
         if std::path::Path::new(path).exists() {
-            return Some(format!("nodejs:{}", path));
+            return Some(format!("node:{}", path));
         }
     }
 
@@ -75,7 +75,7 @@ fn find_js_runtime() -> Option<String> {
                 if let Some(first_line) = stdout.lines().next() {
                     let path = first_line.trim();
                     if !path.is_empty() {
-                        return Some(format!("nodejs:{}", path));
+                        return Some(format!("node:{}", path));
                     }
                 }
             }
