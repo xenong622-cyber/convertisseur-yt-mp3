@@ -31,7 +31,7 @@ Télécharge le dernier installeur depuis la page [Releases](../../releases) :
 
 ```bash
 # 1. Cloner le repo
-git clone https://github.com/TON_USERNAME/convertisseur-yt-mp3.git
+git clone https://github.com/xenong622-cyber/convertisseur-yt-mp3.git
 cd convertisseur-yt-mp3
 
 # 2. Installer les dépendances Node
