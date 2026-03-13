@@ -50,7 +50,37 @@ if (Test-Path $ffmpegPath) {
     Write-Host "[OK] ffmpeg downloaded and extracted" -ForegroundColor Green
 }
 
+# --- deno ---
+$denoPath = Join-Path $binDir "deno-$triple.exe"
+if (Test-Path $denoPath) {
+    Write-Host "[OK] deno already exists" -ForegroundColor Green
+} else {
+    Write-Host "[DL] Downloading deno..." -ForegroundColor Cyan
+    $denoZip = Join-Path $binDir "deno.zip"
+    $denoUrl = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip"
+    Invoke-WebRequest -Uri $denoUrl -OutFile $denoZip -UseBasicParsing
+
+    Write-Host "[..] Extracting deno.exe..." -ForegroundColor Cyan
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($denoZip)
+    $entry = $zip.Entries | Where-Object { $_.Name -eq "deno.exe" } | Select-Object -First 1
+    if ($null -eq $entry) {
+        $zip.Dispose()
+        Remove-Item $denoZip -Force
+        throw "deno.exe not found in zip"
+    }
+    $stream = $entry.Open()
+    $fileStream = [System.IO.File]::Create($denoPath)
+    $stream.CopyTo($fileStream)
+    $fileStream.Close()
+    $stream.Close()
+    $zip.Dispose()
+    Remove-Item $denoZip -Force
+    Write-Host "[OK] deno downloaded and extracted" -ForegroundColor Green
+}
+
 Write-Host ""
 Write-Host "Binaries ready in $binDir" -ForegroundColor Green
 Write-Host "  - yt-dlp-$triple.exe"
 Write-Host "  - ffmpeg-$triple.exe"
+Write-Host "  - deno-$triple.exe"

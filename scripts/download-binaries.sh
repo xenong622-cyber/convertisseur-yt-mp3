@@ -35,7 +35,23 @@ else
     echo "[OK] ffmpeg downloaded and extracted"
 fi
 
+# --- deno ---
+DENO_PATH="$BIN_DIR/deno-$TRIPLE.exe"
+if [ -f "$DENO_PATH" ]; then
+    echo "[OK] deno already exists"
+else
+    echo "[DL] Downloading deno..."
+    DENO_ZIP="$BIN_DIR/deno.zip"
+    curl -L -o "$DENO_ZIP" "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip"
+    echo "[..] Extracting deno.exe..."
+    unzip -j "$DENO_ZIP" "deno.exe" -d "$BIN_DIR"
+    mv "$BIN_DIR/deno.exe" "$DENO_PATH"
+    rm "$DENO_ZIP"
+    echo "[OK] deno downloaded and extracted"
+fi
+
 echo ""
 echo "Binaries ready in $BIN_DIR"
 echo "  - yt-dlp-$TRIPLE.exe"
 echo "  - ffmpeg-$TRIPLE.exe"
+echo "  - deno-$TRIPLE.exe"

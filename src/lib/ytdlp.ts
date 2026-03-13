@@ -27,12 +27,12 @@ export async function downloadAudio(
     return;
   }
 
-  // Find a JS runtime for yt-dlp (needed for YouTube extraction)
-  let jsRuntime: string | null = null;
+  // Get bundled deno path for yt-dlp JS extraction
+  let denoPath: string | null = null;
   try {
-    jsRuntime = await invoke<string | null>("find_js_runtime");
+    denoPath = await invoke<string>("get_deno_path");
   } catch {
-    // No JS runtime found, yt-dlp will try without (may fail for some videos)
+    // deno not found, yt-dlp will try without
   }
 
   const args = [
@@ -45,7 +45,7 @@ export async function downloadAudio(
     "--newline",
     "--no-playlist",
     "--progress",
-    ...(jsRuntime ? ["--js-runtimes", jsRuntime] : []),
+    ...(denoPath ? ["--js-runtimes", `deno:${denoPath}`] : []),
     "-o", `${outputDir}/%(title)s.%(ext)s`,
     url,
   ];
