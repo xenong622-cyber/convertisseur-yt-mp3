@@ -109,6 +109,10 @@ export async function downloadAudio(
     ) {
       onStatus({ type: "converting" });
     }
+
+    if (line.includes("ERROR:")) {
+      stderrLines.push(line.trim());
+    }
   });
 
   command.stderr.on("data", (line: string) => {
