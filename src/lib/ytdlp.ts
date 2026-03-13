@@ -11,61 +11,25 @@ export type DownloadStatus =
   | { type: "done"; filePath: string; title: string }
   | { type: "error"; message: string };
 
-export async function downloadAudio(
-  url: string,
-  outputDir: string,
+async function runYtdlp(
+  args: string[],
+  onStatus: (status: DownloadStatus) => void,
   format: AudioFormat,
-  onStatus: (status: DownloadStatus) => void
-): Promise<void> {
-  onStatus({ type: "fetching_info" });
-
-  let ffmpegPath: string;
-  try {
-    ffmpegPath = await invoke<string>("get_ffmpeg_path");
-  } catch (e) {
-    onStatus({ type: "error", message: `Impossible de trouver ffmpeg: ${e}` });
-    return;
-  }
-
-  // Get bundled deno path for yt-dlp JS extraction
-  let denoPath: string | null = null;
-  try {
-    denoPath = await invoke<string>("get_deno_path");
-  } catch {
-    // deno not found, yt-dlp will try without
-  }
-
-  const args = [
-    "-x",
-    "--audio-format", format,
-    "--audio-quality", "0",
-    "--embed-thumbnail",
-    "--add-metadata",
-    "--ffmpeg-location", ffmpegPath,
-    "--newline",
-    "--no-playlist",
-    "--progress",
-    ...(denoPath ? ["--js-runtimes", `deno:${denoPath}`] : []),
-    "-o", `${outputDir}/%(title)s.%(ext)s`,
-    url,
-  ];
-
-  // MP3: force 320kbps CBR for best quality
-  if (format === "mp3") {
-    args.splice(args.indexOf("--audio-quality"), 2, "--audio-quality", "320K");
-  }
-
+): Promise<{ success: boolean; botDetected: boolean; errorMsg: string }> {
   let title = "";
   let lastFilePath = "";
-  const stderrLines: string[] = [];
-  const warningLines: string[] = [];
+  const allOutput: string[] = [];
+  let botDetected = false;
 
   const command = Command.sidecar("binaries/yt-dlp", args);
 
   command.stdout.on("data", (line: string) => {
-    // Check for errors FIRST (before any return)
+    allOutput.push(line);
+
     if (line.includes("ERROR:")) {
-      stderrLines.push(line.trim());
+      if (line.includes("Sign in") || line.includes("bot")) {
+        botDetected = true;
+      }
       return;
     }
 
@@ -124,21 +88,16 @@ export async function downloadAudio(
     ) {
       onStatus({ type: "converting" });
     }
-
   });
 
   command.stderr.on("data", (line: string) => {
-    console.warn("[yt-dlp stderr]", line);
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    if (trimmed.startsWith("WARNING:")) {
-      warningLines.push(trimmed);
-    } else {
-      stderrLines.push(trimmed);
+    allOutput.push(line);
+    if (line.includes("Sign in") || line.includes("bot")) {
+      botDetected = true;
     }
   });
 
-  const resultPromise = new Promise<void>((resolve, reject) => {
+  return new Promise((resolve) => {
     command.on("close", (data) => {
       if (data.code === 0) {
         const outPath = lastFilePath.replace(/\.[^.]+$/, `.${format}`);
@@ -147,37 +106,105 @@ export async function downloadAudio(
           filePath: outPath,
           title: title || "Audio",
         });
-        resolve();
+        resolve({ success: true, botDetected: false, errorMsg: "" });
       } else {
-        const allErrors = stderrLines.length > 0
-          ? stderrLines
-          : warningLines;
-        const errMsg = allErrors.length > 0
-          ? allErrors.slice(-3).join("\n")
-          : `yt-dlp s'est terminé avec le code ${data.code}`;
-        onStatus({ type: "error", message: errMsg });
-        reject(new Error(errMsg));
+        const errorLines = allOutput
+          .filter(l => l.includes("ERROR:"))
+          .map(l => l.trim());
+        const lastLines = allOutput.slice(-5).map(l => l.trim()).join("\n");
+        resolve({
+          success: false,
+          botDetected,
+          errorMsg: errorLines.length > 0 ? errorLines.join("\n") : lastLines,
+        });
       }
     });
 
     command.on("error", (error) => {
-      const errMsg = `Erreur: ${error}`;
-      onStatus({ type: "error", message: errMsg });
-      reject(new Error(errMsg));
+      resolve({ success: false, botDetected: false, errorMsg: `Erreur: ${error}` });
+    });
+
+    command.spawn().catch((e) => {
+      resolve({ success: false, botDetected: false, errorMsg: `Impossible de lancer yt-dlp: ${e}` });
     });
   });
+}
 
+export async function downloadAudio(
+  url: string,
+  outputDir: string,
+  format: AudioFormat,
+  onStatus: (status: DownloadStatus) => void
+): Promise<void> {
+  onStatus({ type: "fetching_info" });
+
+  let ffmpegPath: string;
   try {
-    await command.spawn();
+    ffmpegPath = await invoke<string>("get_ffmpeg_path");
   } catch (e) {
-    onStatus({
-      type: "error",
-      message: `Impossible de lancer yt-dlp: ${e}`,
-    });
-    throw e;
+    onStatus({ type: "error", message: `Impossible de trouver ffmpeg: ${e}` });
+    return;
   }
 
-  return resultPromise;
+  let denoPath: string | null = null;
+  try {
+    denoPath = await invoke<string>("get_deno_path");
+  } catch {
+    // deno not found
+  }
+
+  const baseArgs = [
+    "-x",
+    "--audio-format", format,
+    "--audio-quality", "0",
+    "--embed-thumbnail",
+    "--add-metadata",
+    "--ffmpeg-location", ffmpegPath,
+    "--newline",
+    "--no-playlist",
+    "--progress",
+    ...(denoPath ? ["--js-runtimes", `deno:${denoPath}`] : []),
+    "-o", `${outputDir}/%(title)s.%(ext)s`,
+    url,
+  ];
+
+  if (format === "mp3") {
+    baseArgs.splice(baseArgs.indexOf("--audio-quality"), 2, "--audio-quality", "320K");
+  }
+
+  // First attempt: without cookies
+  const result = await runYtdlp(baseArgs, onStatus, format);
+  if (result.success) return;
+
+  // If YouTube detected a bot, retry with browser cookies
+  if (result.botDetected) {
+    const browsers = ["chrome", "edge", "brave", "firefox", "opera"];
+    for (const browser of browsers) {
+      onStatus({ type: "fetching_info" });
+      const cookieArgs = [...baseArgs.slice(0, -1), "--cookies-from-browser", browser, url];
+      const retryResult = await runYtdlp(cookieArgs, onStatus, format);
+      if (retryResult.success) return;
+      // If it's not a cookie extraction error, don't try other browsers
+      if (!retryResult.errorMsg.includes("could not find") &&
+          !retryResult.errorMsg.includes("Could not copy") &&
+          !retryResult.errorMsg.includes("Failed to decrypt")) {
+        // Different error, stop trying
+        if (retryResult.botDetected) continue; // Still bot detected, try next browser
+        onStatus({ type: "error", message: retryResult.errorMsg });
+        return;
+      }
+    }
+
+    // All browsers failed
+    onStatus({
+      type: "error",
+      message: "YouTube demande une vérification anti-bot.\n\nSolution : ouvre YouTube dans ton navigateur, connecte-toi à ton compte Google, puis réessaie.",
+    });
+    return;
+  }
+
+  // Non-bot error
+  onStatus({ type: "error", message: result.errorMsg });
 }
 
 export function isValidYoutubeUrl(url: string): boolean {
