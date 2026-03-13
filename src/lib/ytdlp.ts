@@ -37,7 +37,7 @@ export async function downloadAudio(
     "--newline",
     "--no-playlist",
     "--progress",
-    "--extractor-args", "youtube:player_client=web_creator,mediaconnect",
+    "--extractor-args", "youtube:player_client=ios,web_creator",
     "-o", `${outputDir}/%(title)s.%(ext)s`,
     url,
   ];
@@ -113,8 +113,9 @@ export async function downloadAudio(
 
   command.stderr.on("data", (line: string) => {
     console.warn("[yt-dlp stderr]", line);
-    if (line.trim()) {
-      stderrLines.push(line.trim());
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith("WARNING:")) {
+      stderrLines.push(trimmed);
     }
   });
 
