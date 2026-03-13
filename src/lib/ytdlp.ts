@@ -49,6 +49,7 @@ export async function downloadAudio(
   let title = "";
   let lastFilePath = "";
   const stderrLines: string[] = [];
+  const warningLines: string[] = [];
 
   const command = Command.sidecar("binaries/yt-dlp", args);
 
@@ -113,7 +114,10 @@ export async function downloadAudio(
   command.stderr.on("data", (line: string) => {
     console.warn("[yt-dlp stderr]", line);
     const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith("WARNING:")) {
+    if (!trimmed) return;
+    if (trimmed.startsWith("WARNING:")) {
+      warningLines.push(trimmed);
+    } else {
       stderrLines.push(trimmed);
     }
   });
@@ -129,8 +133,11 @@ export async function downloadAudio(
         });
         resolve();
       } else {
-        const errMsg = stderrLines.length > 0
-          ? stderrLines.slice(-3).join("\n")
+        const allErrors = stderrLines.length > 0
+          ? stderrLines
+          : warningLines;
+        const errMsg = allErrors.length > 0
+          ? allErrors.slice(-3).join("\n")
           : `yt-dlp s'est terminé avec le code ${data.code}`;
         onStatus({ type: "error", message: errMsg });
         reject(new Error(errMsg));
