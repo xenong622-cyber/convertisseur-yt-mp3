@@ -1,17 +1,21 @@
 # Convertisseur YT Audio
 
-Application Windows pour extraire l'audio de vidéos YouTube en FLAC, MP3 ou WAV.
+Application desktop Windows pour extraire l'audio de vidéos YouTube en FLAC, MP3 ou WAV. Interface Cyberpunk Neon avec effets néon roses et cyan.
 
-![Interface](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Interface](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-0.2.0-pink) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Fonctionnalités
 
 - Téléchargement audio depuis YouTube (vidéos, shorts, YouTube Music)
 - Formats : FLAC (lossless), MP3 (320 kbps), WAV
-- File d'attente multi-liens
+- File d'attente multi-liens (coller plusieurs URLs)
 - Choix du dossier de sauvegarde
 - Métadonnées et miniature intégrées
-- Interface moderne et simple
+- Nommage intelligent artiste - titre depuis les métadonnées YouTube
+- Progression détaillée : pourcentage, vitesse, taille, ETA
+- Auto-update de yt-dlp au lancement
+- Interface Cyberpunk Neon avec barre de titre custom
+- Détection anti-bot avec retry automatique via cookies navigateur
 
 ## Installation (utilisateur)
 
