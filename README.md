@@ -1,69 +1,69 @@
-# Convertisseur YT Audio
+# YT Audio Converter
 
-Application desktop Windows pour extraire l'audio de vidéos YouTube en FLAC, MP3 ou WAV. Interface Cyberpunk Neon avec effets néon roses et cyan.
+Windows desktop app to extract audio from YouTube videos as MP3 (320 kbps). Cyberpunk Neon UI with pink and cyan neon effects.
 
 ![Interface](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-0.2.0-pink) ![License](https://img.shields.io/badge/license-MIT-green)
 
-## Fonctionnalités
+## Features
 
-- Téléchargement audio depuis YouTube (vidéos, shorts, YouTube Music)
-- Formats : FLAC (lossless), MP3 (320 kbps), WAV
-- File d'attente multi-liens (coller plusieurs URLs)
-- Choix du dossier de sauvegarde
-- Métadonnées et miniature intégrées
-- Nommage intelligent artiste - titre depuis les métadonnées YouTube
-- Progression détaillée : pourcentage, vitesse, taille, ETA
-- Auto-update de yt-dlp au lancement
-- Interface Cyberpunk Neon avec barre de titre custom
-- Détection anti-bot avec retry automatique via cookies navigateur
+- Audio download from YouTube (videos, shorts, YouTube Music)
+- MP3 320 kbps — best practical quality from YouTube's lossy source
+- Multi-link queue (paste multiple URLs at once)
+- Custom output folder selection
+- Embedded metadata and thumbnails
+- Smart naming: artist - title from YouTube metadata
+- Detailed progress: percentage, speed, file size, ETA
+- Auto-update yt-dlp on startup
+- Cyberpunk Neon interface with custom titlebar
+- Anti-bot detection with automatic retry via browser cookies
 
-## Installation (utilisateur)
+## Installation (user)
 
-Télécharge le dernier installeur depuis la page [Releases](../../releases) :
+Download the latest installer from the [Releases](../../releases) page:
 
-- **`Convertisseur YT MP3_x.x.x_x64-setup.exe`** — Installeur Windows (recommandé)
+- **`Convertisseur YT MP3_x.x.x_x64-setup.exe`** — Windows installer (recommended)
 
-## Build depuis les sources
+## Build from source
 
-### Prérequis
+### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18+)
 - [Rust](https://rustup.rs/) (toolchain `stable-x86_64-pc-windows-msvc`)
-- [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/) (composant "C++ build tools")
+- [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/) ("C++ build tools" component)
 
-### Étapes
+### Steps
 
 ```bash
-# 1. Cloner le repo
+# 1. Clone the repo
 git clone https://github.com/xenong622-cyber/convertisseur-yt-mp3.git
 cd convertisseur-yt-mp3
 
-# 2. Installer les dépendances Node
+# 2. Install Node dependencies
 npm install
 
-# 3. Télécharger yt-dlp et ffmpeg (obligatoire avant le build)
-# PowerShell :
+# 3. Download yt-dlp and ffmpeg (required before build)
+# PowerShell:
 .\scripts\download-binaries.ps1
-# Ou bash (Git Bash / WSL) :
+# Or bash (Git Bash / WSL):
 bash scripts/download-binaries.sh
 
-# 4. Lancer en mode dev
+# 4. Run in dev mode
 npm run tauri dev
 
-# 5. Ou build l'installeur
+# 5. Or build the installer
 npm run tauri build
 ```
 
-L'installeur est généré dans `src-tauri/target/release/bundle/nsis/`.
+The installer is generated in `src-tauri/target/release/bundle/nsis/`.
 
-## Stack technique
+## Tech stack
 
-- **[Tauri v2](https://tauri.app/)** — Framework desktop léger
+- **[Tauri v2](https://tauri.app/)** — Lightweight desktop framework
 - **React + TypeScript** — Frontend
 - **Tailwind CSS v4** — Styles
-- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — Extraction audio YouTube
-- **[ffmpeg](https://ffmpeg.org/)** — Conversion audio
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — YouTube audio extraction
+- **[ffmpeg](https://ffmpeg.org/)** — Audio conversion
 
-## Licence
+## License
 
 MIT

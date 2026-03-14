@@ -27,7 +27,7 @@ fn get_ffmpeg_path() -> Result<String, String> {
         return Ok(path_str);
     }
 
-    Err("ffmpeg.exe introuvable".to_string())
+    Err("ffmpeg.exe not found".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

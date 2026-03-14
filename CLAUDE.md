@@ -1,95 +1,99 @@
-# Convertisseur YT Audio
+# YT Audio Converter
 
-## Projet
+## Project
 
-Application desktop Windows (10/11) pour extraire l'audio de vidéos YouTube en FLAC, MP3 ou WAV.
-Repo GitHub : https://github.com/xenong622-cyber/convertisseur-yt-mp3
+Windows desktop app (10/11) to extract audio from YouTube videos as MP3 320 kbps.
+GitHub repo: https://github.com/xenong622-cyber/convertisseur-yt-mp3
 
 ## Stack
 
-- **Tauri v2** — framework desktop (backend Rust, frontend web)
+- **Tauri v2** — desktop framework (Rust backend, web frontend)
 - **React 19 + TypeScript** — frontend (single page)
-- **Tailwind CSS v4** — styles (via `@tailwindcss/vite`, import dans `src/App.css`)
-- **yt-dlp** — sidecar Tauri pour télécharger l'audio YouTube
-- **ffmpeg** — conversion audio (appelé par yt-dlp, embarqué comme externalBin)
+- **Tailwind CSS v4** — styles (via `@tailwindcss/vite`, imported in `src/App.css`)
+- **yt-dlp** — Tauri sidecar to download YouTube audio
+- **ffmpeg** — audio conversion (called by yt-dlp, bundled as externalBin)
 
 ## Architecture
 
 ```
-src/                        # Frontend React
-  App.tsx                   # UI principale — thème Cyberpunk Neon, custom titlebar, file d'attente
-  lib/ytdlp.ts              # Logique coeur : appel sidecar yt-dlp, parsing progression, auto-update
-  App.css                   # @import "tailwindcss" + effets neon/grain/grid CSS
-src-tauri/                  # Backend Rust
-  src/lib.rs                # Commande get_ffmpeg_path + enregistrement plugins (shell, dialog, opener)
-  src/main.rs               # Point d'entrée (appelle lib::run())
-  tauri.conf.json           # Config app, sidecars, fenêtre 700x550, decorations: false
-  capabilities/default.json # Permissions : shell, dialog, window controls (minimize/maximize/close/drag)
-  binaries/                 # yt-dlp et ffmpeg (.exe, gitignored, téléchargés via scripts/)
+src/                        # React frontend
+  App.tsx                   # Main UI — Cyberpunk Neon theme, custom titlebar, download queue
+  lib/ytdlp.ts              # Core logic: yt-dlp sidecar calls, progress parsing, auto-update
+  App.css                   # @import "tailwindcss" + neon/grain/grid CSS effects
+src-tauri/                  # Rust backend
+  src/lib.rs                # get_ffmpeg_path command + plugin registration (shell, dialog, opener)
+  src/main.rs               # Entry point (calls lib::run())
+  tauri.conf.json           # App config, sidecars, 700x550 window, decorations: false
+  capabilities/default.json # Permissions: shell, dialog, window controls (minimize/maximize/close/drag)
+  binaries/                 # yt-dlp and ffmpeg (.exe, gitignored, downloaded via scripts/)
 scripts/
-  download-binaries.ps1     # Télécharge yt-dlp.exe et ffmpeg.exe (PowerShell)
-  download-binaries.sh      # Même chose en bash
+  download-binaries.ps1     # Downloads yt-dlp.exe and ffmpeg.exe (PowerShell)
+  download-binaries.sh      # Same thing in bash
 ```
 
-## Commandes
+## Commands
 
 ```bash
-# Installer les dépendances
+# Install dependencies
 npm install
 
-# Télécharger les binaires yt-dlp + ffmpeg (obligatoire avant dev/build)
-# PowerShell :
+# Download yt-dlp + ffmpeg binaries (required before dev/build)
+# PowerShell:
 .\scripts\download-binaries.ps1
-# Ou bash :
+# Or bash:
 bash scripts/download-binaries.sh
 
 # Dev
 npm run tauri dev
 
-# Build installeur (.exe NSIS)
+# Build installer (.exe NSIS)
 npm run tauri build
-# Output : src-tauri/target/release/bundle/nsis/
+# Output: src-tauri/target/release/bundle/nsis/
 ```
 
-## Points techniques importants
+## Important technical notes
 
-### Sidecar yt-dlp
-- Les binaires dans `src-tauri/binaries/` doivent avoir le suffixe triple : `yt-dlp-x86_64-pc-windows-msvc.exe`, `ffmpeg-x86_64-pc-windows-msvc.exe`
-- `capabilities/default.json` doit avoir BOTH `shell:allow-execute` ET `shell:allow-spawn` scopés avec `"sidecar": true` — sinon erreur "Scoped command not found"
-- Les event handlers (`command.on("close")`, `command.on("error")`) doivent être enregistrés AVANT `command.spawn()` pour éviter une race condition
-- Auto-update yt-dlp au lancement via `updateYtdlp()` dans useEffect
+### yt-dlp sidecar
+- Binaries in `src-tauri/binaries/` must have the triple suffix: `yt-dlp-x86_64-pc-windows-msvc.exe`, `ffmpeg-x86_64-pc-windows-msvc.exe`
+- `capabilities/default.json` must have BOTH `shell:allow-execute` AND `shell:allow-spawn` scoped with `"sidecar": true` — otherwise "Scoped command not found" error
+- Event handlers (`command.on("close")`, `command.on("error")`) must be registered BEFORE `command.spawn()` to avoid a race condition
+- Auto-update yt-dlp on startup via `updateYtdlp()` in useEffect
 
 ### ffmpeg path
-- En dev : `{exe_dir}/../../binaries/ffmpeg-x86_64-pc-windows-msvc.exe`
-- En prod : `{exe_dir}/ffmpeg.exe`
-- Résolu côté Rust via la commande `get_ffmpeg_path` (invoquée depuis le frontend)
+- In dev: `{exe_dir}/../../binaries/ffmpeg-x86_64-pc-windows-msvc.exe`
+- In prod: `{exe_dir}/ffmpeg.exe`
+- Resolved on the Rust side via the `get_ffmpeg_path` command (invoked from the frontend)
 
 ### Custom titlebar
-- `decorations: false` dans `tauri.conf.json` — pas de barre de titre Windows native
-- Titlebar React avec `appWindow.startDragging()` sur `onMouseDown`
-- **Important** : `stopPropagation()` sur le conteneur des boutons window controls, sinon `startDragging` capture le clic avant les boutons
-- Permissions requises : `core:window:allow-minimize`, `core:window:allow-toggle-maximize`, `core:window:allow-close`, `core:window:allow-start-dragging`
+- `decorations: false` in `tauri.conf.json` — no native Windows titlebar
+- React titlebar with `appWindow.startDragging()` on `onMouseDown`
+- **Important**: `stopPropagation()` on the window controls button container, otherwise `startDragging` captures the click before the buttons
+- Required permissions: `core:window:allow-minimize`, `core:window:allow-toggle-maximize`, `core:window:allow-close`, `core:window:allow-start-dragging`
 
 ### Tailwind v4
-- Pas de `tailwind.config.js` — Tailwind v4 utilise `@tailwindcss/vite` plugin + `@import "tailwindcss"` dans CSS
-- Config dans `vite.config.ts` : plugins `react()` et `tailwindcss()`
+- No `tailwind.config.js` — Tailwind v4 uses `@tailwindcss/vite` plugin + `@import "tailwindcss"` in CSS
+- Config in `vite.config.ts`: plugins `react()` and `tailwindcss()`
 
 ### Rust toolchain
-- Doit être `stable-x86_64-pc-windows-msvc` (pas gnu, sinon erreur dlltool manquant)
+- Must be `stable-x86_64-pc-windows-msvc` (not gnu, otherwise missing dlltool error)
 
-### UI — Thème Cyberpunk Neon
-- Fond noir (`bg-gray-950`) avec grille subtile et overlay grain animé
-- Accents : rose (`pink-500` / `#ec4899`) et cyan (`cyan-500` / `#06b6d4`)
-- Effets CSS custom : `.neon-card`, `.neon-btn`, `.neon-progress`, `.neon-icon` (glow box-shadow)
-- Dégradé rose→cyan sur boutons et barre de progression
-- `font-mono` pour URLs, stats, et footer
+### UI — Cyberpunk Neon theme
+- Black background (`bg-gray-950`) with subtle grid and animated grain overlay
+- Accents: pink (`pink-500` / `#ec4899`) and cyan (`cyan-500` / `#06b6d4`)
+- Custom CSS effects: `.neon-card`, `.neon-btn`, `.neon-progress`, `.neon-icon` (glow box-shadow)
+- Pink→cyan gradient on buttons and progress bar
+- `font-mono` for URLs, stats, and footer
 
-### Taille de l'installeur
-- Installeur NSIS : ~45 MB (yt-dlp 18 MB + ffmpeg 95 MB compressés + Tauri shell ~3 MB)
-- Deno a été retiré (économie de 121 MB) — yt-dlp fonctionne sans JS runtime externe
-- Ne pas réintroduire deno sauf nécessité absolue
+### Installer size
+- NSIS installer: ~45 MB (yt-dlp 18 MB + ffmpeg 95 MB compressed + Tauri shell ~3 MB)
+- Deno was removed (saved 121 MB) — yt-dlp works without external JS runtime
+- Do not reintroduce deno unless absolutely necessary
 
-## Version actuelle : v0.2.0
+### Audio format
+- Hardcoded to MP3 320 kbps — best practical quality from YouTube
+- YouTube source is already lossy (AAC/Opus ~250 kbps), so FLAC/WAV only inflate file size without quality gain
 
-Nouveautés : thème Cyberpunk Neon, custom titlebar, auto-update yt-dlp, progression détaillée (vitesse/taille/ETA), nommage artiste-titre.
-Release : https://github.com/xenong622-cyber/convertisseur-yt-mp3/releases/tag/v0.2.0
+## Current version: v0.2.0
+
+New: Cyberpunk Neon theme, custom titlebar, auto-update yt-dlp, detailed progress (speed/size/ETA), artist-title naming.
+Release: https://github.com/xenong622-cyber/convertisseur-yt-mp3/releases/tag/v0.2.0

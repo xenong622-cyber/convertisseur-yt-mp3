@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Convertisseur YT MP3",
+        "title": "YT Audio Converter",
         "width": 700,
         "height": 550,
         "resizable": true,
