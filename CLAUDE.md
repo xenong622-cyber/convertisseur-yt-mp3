@@ -25,7 +25,7 @@ src-tauri/                  # Backend Rust
   src/main.rs               # Point d'entrée (appelle lib::run())
   tauri.conf.json           # Config app, sidecars, fenêtre 700x550, decorations: false
   capabilities/default.json # Permissions : shell, dialog, window controls (minimize/maximize/close/drag)
-  binaries/                 # yt-dlp, ffmpeg et deno (.exe, gitignored, téléchargés via scripts/)
+  binaries/                 # yt-dlp et ffmpeg (.exe, gitignored, téléchargés via scripts/)
 scripts/
   download-binaries.ps1     # Télécharge yt-dlp.exe et ffmpeg.exe (PowerShell)
   download-binaries.sh      # Même chose en bash
@@ -84,6 +84,12 @@ npm run tauri build
 - Dégradé rose→cyan sur boutons et barre de progression
 - `font-mono` pour URLs, stats, et footer
 
+### Taille de l'installeur
+- Installeur NSIS : ~45 MB (yt-dlp 18 MB + ffmpeg 95 MB compressés + Tauri shell ~3 MB)
+- Deno a été retiré (économie de 121 MB) — yt-dlp fonctionne sans JS runtime externe
+- Ne pas réintroduire deno sauf nécessité absolue
+
 ## Version actuelle : v0.2.0
 
 Nouveautés : thème Cyberpunk Neon, custom titlebar, auto-update yt-dlp, progression détaillée (vitesse/taille/ETA), nommage artiste-titre.
+Release : https://github.com/xenong622-cyber/convertisseur-yt-mp3/releases/tag/v0.2.0
