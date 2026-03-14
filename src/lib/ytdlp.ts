@@ -1,8 +1,6 @@
 import { Command } from "@tauri-apps/plugin-shell";
 import { invoke } from "@tauri-apps/api/core";
 
-export type AudioFormat = "flac" | "mp3" | "wav";
-
 export type DownloadStatus =
   | { type: "idle" }
   | { type: "fetching_info" }
@@ -30,19 +28,18 @@ function convertSpeed(value: string): string {
   if (!match) return value;
   const num = parseFloat(match[1]);
   const unit = match[2].toLowerCase();
-  if (unit.includes("gib/s")) return `${(num * 1074).toFixed(0)} Mo/s`;
-  if (unit.includes("mib/s")) return `${(num * 1.049).toFixed(1)} Mo/s`;
-  if (unit.includes("kib/s")) return `${(num / 976.6).toFixed(2)} Mo/s`;
-  if (unit.includes("gb/s")) return `${(num * 1000).toFixed(0)} Mo/s`;
-  if (unit.includes("mb/s")) return `${num.toFixed(1)} Mo/s`;
-  if (unit.includes("kb/s")) return `${(num / 1000).toFixed(2)} Mo/s`;
+  if (unit.includes("gib/s")) return `${(num * 1074).toFixed(0)} MB/s`;
+  if (unit.includes("mib/s")) return `${(num * 1.049).toFixed(1)} MB/s`;
+  if (unit.includes("kib/s")) return `${(num / 976.6).toFixed(2)} MB/s`;
+  if (unit.includes("gb/s")) return `${(num * 1000).toFixed(0)} MB/s`;
+  if (unit.includes("mb/s")) return `${num.toFixed(1)} MB/s`;
+  if (unit.includes("kb/s")) return `${(num / 1000).toFixed(2)} MB/s`;
   return value;
 }
 
 async function runYtdlp(
   args: string[],
   onStatus: (status: DownloadStatus) => void,
-  format: AudioFormat,
 ): Promise<{ success: boolean; botDetected: boolean; errorMsg: string }> {
   let title = "";
   let lastFilePath = "";
@@ -144,7 +141,7 @@ async function runYtdlp(
   return new Promise((resolve) => {
     command.on("close", (data) => {
       if (data.code === 0) {
-        const outPath = lastFilePath.replace(/\.[^.]+$/, `.${format}`);
+        const outPath = lastFilePath.replace(/\.[^.]+$/, ".mp3");
         onStatus({
           type: "done",
           filePath: outPath,
@@ -165,11 +162,11 @@ async function runYtdlp(
     });
 
     command.on("error", (error) => {
-      resolve({ success: false, botDetected: false, errorMsg: `Erreur: ${error}` });
+      resolve({ success: false, botDetected: false, errorMsg: `Error: ${error}` });
     });
 
     command.spawn().catch((e) => {
-      resolve({ success: false, botDetected: false, errorMsg: `Impossible de lancer yt-dlp: ${e}` });
+      resolve({ success: false, botDetected: false, errorMsg: `Failed to launch yt-dlp: ${e}` });
     });
   });
 }
@@ -177,7 +174,6 @@ async function runYtdlp(
 export async function downloadAudio(
   url: string,
   outputDir: string,
-  format: AudioFormat,
   onStatus: (status: DownloadStatus) => void
 ): Promise<void> {
   onStatus({ type: "fetching_info" });
@@ -186,7 +182,7 @@ export async function downloadAudio(
   try {
     ffmpegPath = await invoke<string>("get_ffmpeg_path");
   } catch (e) {
-    onStatus({ type: "error", message: `Impossible de trouver ffmpeg: ${e}` });
+    onStatus({ type: "error", message: `Could not find ffmpeg: ${e}` });
     return;
   }
 
@@ -194,8 +190,8 @@ export async function downloadAudio(
 
   const baseArgs = [
     "-x",
-    "--audio-format", format,
-    "--audio-quality", "0",
+    "--audio-format", "mp3",
+    "--audio-quality", "320K",
     "--embed-thumbnail",
     "--add-metadata",
     "--ffmpeg-location", ffmpegPath,
@@ -206,12 +202,8 @@ export async function downloadAudio(
     url,
   ];
 
-  if (format === "mp3") {
-    baseArgs.splice(baseArgs.indexOf("--audio-quality"), 2, "--audio-quality", "320K");
-  }
-
   // First attempt: without cookies
-  const result = await runYtdlp(baseArgs, onStatus, format);
+  const result = await runYtdlp(baseArgs, onStatus);
   if (result.success) return;
 
   // If YouTube detected a bot, retry with browser cookies
@@ -220,7 +212,7 @@ export async function downloadAudio(
     for (const browser of browsers) {
       onStatus({ type: "fetching_info" });
       const cookieArgs = [...baseArgs.slice(0, -1), "--cookies-from-browser", browser, url];
-      const retryResult = await runYtdlp(cookieArgs, onStatus, format);
+      const retryResult = await runYtdlp(cookieArgs, onStatus);
       if (retryResult.success) return;
       // If it's not a cookie extraction error, don't try other browsers
       if (!retryResult.errorMsg.includes("could not find") &&
@@ -236,7 +228,7 @@ export async function downloadAudio(
     // All browsers failed
     onStatus({
       type: "error",
-      message: "YouTube demande une vérification anti-bot.\n\nSolution : ouvre YouTube dans ton navigateur, connecte-toi à ton compte Google, puis réessaie.",
+      message: "YouTube is requesting anti-bot verification.\n\nSolution: open YouTube in your browser, sign in to your Google account, then try again.",
     });
     return;
   }
@@ -275,23 +267,23 @@ export async function updateYtdlp(
       const output = allOutput.join("\n");
       if (data.code === 0) {
         if (output.includes("is up to date") || output.includes("Up-to-date")) {
-          onStatus({ type: "done", message: "yt-dlp est déjà à jour." });
+          onStatus({ type: "done", message: "yt-dlp is up to date." });
         } else {
-          onStatus({ type: "done", message: "yt-dlp mis à jour avec succès !" });
+          onStatus({ type: "done", message: "yt-dlp updated successfully!" });
         }
       } else {
-        onStatus({ type: "error", message: `Échec de la mise à jour: ${output.slice(-200)}` });
+        onStatus({ type: "error", message: `Update failed: ${output.slice(-200)}` });
       }
       resolve();
     });
 
     command.on("error", (error) => {
-      onStatus({ type: "error", message: `Erreur: ${error}` });
+      onStatus({ type: "error", message: `Error: ${error}` });
       resolve();
     });
 
     command.spawn().catch((e) => {
-      onStatus({ type: "error", message: `Impossible de lancer yt-dlp: ${e}` });
+      onStatus({ type: "error", message: `Failed to launch yt-dlp: ${e}` });
       resolve();
     });
   });
