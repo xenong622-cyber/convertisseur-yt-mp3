@@ -92,8 +92,15 @@ npm run tauri build
 ### Audio format
 - Hardcoded to MP3 320 kbps — best practical quality from YouTube
 - YouTube source is already lossy (AAC/Opus ~250 kbps), so FLAC/WAV only inflate file size without quality gain
+- No format selector in the UI — single "Download as MP3" button
+
+### Language & naming
+- All UI strings, docs, and GitHub release notes are in English
+- `productName` in tauri.conf.json is `YT Audio Converter` (affects installer name)
+- Repo URL remains `convertisseur-yt-mp3` (not renamed to avoid breaking links)
+- Download scripts still include deno section (dead code, should be cleaned up)
 
 ## Current version: v0.2.0
 
-New: Cyberpunk Neon theme, custom titlebar, auto-update yt-dlp, detailed progress (speed/size/ETA), artist-title naming.
+Cyberpunk Neon theme, custom titlebar, auto-update yt-dlp, detailed progress (speed/size/ETA), artist-title naming, MP3 320kbps only.
 Release: https://github.com/xenong622-cyber/convertisseur-yt-mp3/releases/tag/v0.2.0
