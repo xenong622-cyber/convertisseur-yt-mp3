@@ -190,13 +190,6 @@ export async function downloadAudio(
     return;
   }
 
-  let denoPath: string | null = null;
-  try {
-    denoPath = await invoke<string>("get_deno_path");
-  } catch {
-    // deno not found
-  }
-
   const outputTemplate = `${outputDir}/%(artist&{} - |)s%(track,title)s.%(ext)s`;
 
   const baseArgs = [
@@ -209,7 +202,6 @@ export async function downloadAudio(
     "--newline",
     "--no-playlist",
     "--progress",
-    ...(denoPath ? ["--js-runtimes", `deno:${denoPath}`] : []),
     "-o", outputTemplate,
     url,
   ];
